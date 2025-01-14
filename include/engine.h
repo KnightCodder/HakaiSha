@@ -11,6 +11,31 @@ public:
 
     ChessEngine() : stopSearch(false) {}
 
+    void reset()
+    {
+        board = ChessBoard();
+    }
+
+    void startAnalysis()
+    {
+
+    }
+
+    void startTimedSearch(int wtime, int btime, int winc, int binc, int depth)
+    {
+
+    }
+
+    std::string getBestMove()
+    {
+
+    }
+
+    std::string getPonderMove()
+    {
+        
+    }
+
     double negamax(int depth, double alpha, double beta);
 
     double quiescenceCaptures(double alpha, double beta, int depth);
@@ -66,10 +91,12 @@ public:
         stopSearch.store(false);
         searchThread = std::thread([this, depth]()
                                    {
-            Move bestMove = findBestMove(depth);
-            if (!stopSearch.load()) {  // Only output bestmove if search wasn't stopped
-                std::cout << "bestmove " << bestMove.toString() << std::endl;
-            } });
+                                       Move bestMove = findBestMove(depth);
+
+                                       std::cout << "bestmove " << bestMove.toString() << std::endl;
+                                       // if (!stopSearch.load()) {  // Only output bestmove if search wasn't stopped
+                                       // }
+                                   });
     }
 
     void stop()

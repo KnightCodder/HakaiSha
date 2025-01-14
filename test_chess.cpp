@@ -3,7 +3,6 @@
 
 void initializeZobrist();
 void compilingPieceVision();
-void initializeMLmodel();
 
 void printMove(const Move& move) {
     char fromFile = 'a' + (move.from % 8);
@@ -44,7 +43,6 @@ void testChessBoard() {
 int main() {
     initializeZobrist(); // Ensure Zobrist hashing is initialized
     compilingPieceVision();
-    initializeMLmodel();
 
     ChessEngine haki;
 

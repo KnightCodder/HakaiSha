@@ -3,56 +3,49 @@ import io
 import re
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
 def is_quiet_position(board):
-    for move in board.legal_moves:
-        if board.is_capture(move):
-            return False
+    if len(board.piece_map()) < 8:
+        return False
+    # for move in board.legal_moves:
+    #     if board.is_capture(move):
+    #         return False
     return True
 
-def board_to_features(board):
-    # Define piece values
-    piece_values = {
-        chess.PAWN: 100,
-        chess.KNIGHT: 320,
-        chess.BISHOP: 330,
-        chess.ROOK: 500,
-        chess.QUEEN: 900,
-        chess.KING: 1,
-    }
-    
-    # Initialize feature variables
-    turn = 1 if board.turn == chess.WHITE else -1
-    pieces_available = 0
-    material = 0
-    data = []
+import chess
+import numpy as np
 
-    # Count pieces on the board
+def board_to_features(board):
+    # Initialize a 12-channel tensor for CNN input
+    # 6 channels for white pieces and 6 for black pieces
+    features = np.zeros((8, 8, 12), dtype=np.float32)
+
+    # Define a mapping from piece type to channel index
+    piece_to_channel = {
+        chess.PAWN: 0,
+        chess.KNIGHT: 1,
+        chess.BISHOP: 2,
+        chess.ROOK: 3,
+        chess.QUEEN: 4,
+        chess.KING: 5
+    }
+
+    # Iterate over the board and fill the features tensor
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
-            piece_value = piece_values.get(piece.piece_type, 0)  # Get piece value
+            row, col = divmod(square, 8)  # Get row and column indices
+            piece_type = piece.piece_type
+            channel = piece_to_channel[piece_type]
+
             if piece.color == chess.WHITE:
-                data.append(piece_value)  # Positive value for white
-                material += piece_value
+                features[row, col, channel] = 1  # White piece channel
             else:
-                data.append(-piece_value)  # Negative value for black
-                material -= piece_value
+                features[row, col, channel + 6] = 1  # Black piece channel
 
-            # Count pieces available
-            pieces_available += 1  # Increment count for the piece type
-        else:
-            data.append(0)  # No piece on this square
-
-    # Add additional features
-    data.append(turn)  # Whose turn it is
-    data.append(pieces_available)  # Total pieces available on the board
-    data.append(material)
-
-    return data
+    return features
 
 def training_data(pgn_string):
     pgn_io = io.StringIO(pgn_string)
@@ -82,8 +75,8 @@ def training_data(pgn_string):
 pgn_df = pd.read_csv('data/games.csv')
 
 data = []
-# Extract training data from the first 5 games for demonstration purposes
-for i in range(1000):
+
+for i in range(10000):
     game_moves = pgn_df['Moves'].iloc[i]
     data_ = training_data(game_moves)
     data.extend(data_)
@@ -96,29 +89,36 @@ y = [item[1] for item in data]  # Target evaluation scores
 X = np.array(X)
 y = np.array(y)
 
-# Split the data into training and testing sets (80% training, 20% testing)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Create a linear regression model
-model = LinearRegression()
+# Define a simple CNN model for chess board evaluation
+def create_chess_cnn_model(input_shape=(8, 8, 12)):
+    model = models.Sequential()
 
-# Train the model
-model.fit(X_train, y_train)
+    # Convolutional layers to extract spatial features
+    model.add(layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape, padding='same'))  # Added padding='same'
+    model.add(layers.Conv2D(64, (3, 3), activation='relu', padding='same'))  # Added padding='same'
+    model.add(layers.Conv2D(64, (3, 3), activation='relu', padding='same'))  # Added padding='same'
+    model.add(layers.MaxPooling2D((2, 2)))
 
-# Make predictions
-y_pred = model.predict(X_test)
+    model.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same'))  # Added padding='same'
+    model.add(layers.Conv2D(128, (3, 3), activation='relu', padding='same'))  # Added padding='same'
+    model.add(layers.MaxPooling2D((2, 2)))
 
-# Evaluate the model
-mse = mean_squared_error(y_test, y_pred)
-print(f'Mean Squared Error: {mse}')
+    # Flatten and dense layers
+    model.add(layers.Flatten())
+    model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(64, activation='relu'))
 
-# Display model coefficients
-print(f'Coefficients: {model.coef_}')
-print(f'Intercept: {model.intercept_}')
+    # Output layer: Single value for evaluation
+    model.add(layers.Dense(1, activation='tanh'))  # tanh gives evaluation in range [-1, 1]
 
-modelDataFile = "models/modelData.txt"
-# Write coefficients and intercept to a text file
-with open(modelDataFile, 'w') as f:
-    f.write(' '.join(map(str, model.coef_)))
-    f.write(' ')
-    f.write(str(model.intercept_))
+    # Compile model
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001), loss='mean_squared_error')
+    return model
+
+# Create model
+cnn_model = create_chess_cnn_model()
+cnn_model.summary()
+
+cnn_model.fit(X, y, epochs=100, batch_size=32)
