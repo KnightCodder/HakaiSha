@@ -1,5 +1,5 @@
 #include <iostream>
-#include "UCI_protocol.h"
+#include "UCI.h"
 
 void initializeZobrist();
 void compilingPieceVision();

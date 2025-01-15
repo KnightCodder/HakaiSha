@@ -1,4 +1,4 @@
-#include "UCI_protocol.h"
+#include "UCI.h"
 
 void initializeZobrist();
 void compilingPieceVision();
@@ -9,6 +9,7 @@ int main()
     compilingPieceVision();
 
     UCI uci;
-    uci.uciLoop();
+    uci.UCI_Loop();
+    
     return 0;
 }

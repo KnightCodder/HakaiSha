@@ -2,6 +2,11 @@
 
 void UCI::UCI_Loop()
 {
+    bool setoption = false;
+    bool position = false;
+    bool go = false;
+    std::string name = "";
+
     std::string line;
     while (std::getline(std::cin, line))
     {
@@ -11,23 +16,25 @@ void UCI::UCI_Loop()
         {
             if (comm.key == "uci")
             {
-                // Handle the "uci" command here
+                std::cout << "id name " << id::name << "\n";
+                std::cout << "id author " << id::author << "\n";
+                std::cout << "uciok\n";
             }
             else if (comm.key == "isready")
             {
-                // Handle the "isready" command here
+                std::cout << "readyok\n";
             }
             else if (comm.key == "setoption")
             {
-                // Handle the "setoption" command here
+                setoption = true;
             }
             else if (comm.key == "name")
             {
-                // Handle the "name" command here
+                name = comm.value[0];
             }
             else if (comm.key == "UCI_AnalyseMode")
             {
-                // Handle the "UCI_AnalyseMode" command here
+                AnalyseMode = true;
             }
             else if (comm.key == "value")
             {
@@ -35,91 +42,95 @@ void UCI::UCI_Loop()
             }
             else if (comm.key == "ucinewgame")
             {
-                // Handle the "ucinewgame" command here
+                engine.reset();
             }
             else if (comm.key == "quit")
             {
-                // Handle the "quit" command here
+                quit();
             }
             else if (comm.key == "position")
             {
-                // Handle the "position" command here
+                position = true;
             }
             else if (comm.key == "startpos")
             {
-                // Handle the "startpos" command here
+                engine.board = ChessBoard();
             }
             else if (comm.key == "fen")
             {
-                // Handle the "fen" command here
+                std::string fen = "";
+                for (std::string s : comm.value)
+                    fen += s + " ";
+                engine.board = ChessBoard(fen);
             }
             else if (comm.key == "moves")
             {
-                // Handle the "moves" command here
+                for (std::string m : comm.value)
+                    engine.board.makeMoveFromUCI(m);
             }
             else if (comm.key == "go")
             {
-                // Handle the "go" command here
+                go = true;
             }
-            else if (comm.key == "searchmoves")
+            else if (comm.key == "searchmoves" && go)
             {
-                // Handle the "searchmoves" command here
+                engine.parameters.movestosearch = comm.value;
             }
-            else if (comm.key == "ponder")
+            else if (comm.key == "ponder" && go)
             {
-                // Handle the "ponder" command here
+                engine.ponder = true;
             }
-            else if (comm.key == "wtime")
+            else if (comm.key == "wtime" && go)
             {
-                // Handle the "wtime" command here
+                engine.parameters.wtime = stoi(comm.value[0]);
             }
-            else if (comm.key == "btime")
+            else if (comm.key == "btime" && go)
             {
-                // Handle the "btime" command here
+                engine.parameters.btime = stoi(comm.value[0]);
             }
-            else if (comm.key == "winc")
+            else if (comm.key == "winc" && go)
             {
-                // Handle the "winc" command here
+                engine.parameters.winc = stoi(comm.value[0]);
             }
-            else if (comm.key == "binc")
+            else if (comm.key == "binc" && go)
             {
-                // Handle the "binc" command here
+                engine.parameters.binc = stoi(comm.value[0]);
             }
-            else if (comm.key == "movestogo")
+            else if (comm.key == "movestogo" && go)
             {
-                // Handle the "movestogo" command here
+                engine.parameters.movestogo = stoi(comm.value[0]);
             }
-            else if (comm.key == "depth")
+            else if (comm.key == "depth" && go)
             {
-                // Handle the "depth" command here
+                engine.parameters.depth = stoi(comm.value[0]);
             }
-            else if (comm.key == "nodes")
+            else if (comm.key == "nodes" && go)
             {
-                // Handle the "nodes" command here
+                engine.parameters.nodes = stoi(comm.value[0]);
             }
-            else if (comm.key == "mate")
+            else if (comm.key == "mate" && go)
             {
-                // Handle the "mate" command here
+                engine.parameters.mate = stoi(comm.value[0]);
             }
-            else if (comm.key == "movetime")
+            else if (comm.key == "movetime" && go)
             {
-                // Handle the "movetime" command here
+                engine.parameters.movetime = stoi(comm.value[0]);
             }
-            else if (comm.key == "infinite")
+            else if (comm.key == "infinite" && go)
             {
-                // Handle the "infinite" command here
+                engine.parameters.infinite = true;
             }
             else if (comm.key == "stop")
             {
-                // Handle the "stop" command here
+                engine.stop();
             }
             else if (comm.key == "ponderhit")
             {
-                // Handle the "ponderhit" command here
+                engine.ponder = false;
             }
             else if (comm.key == "debug")
             {
-                // Handle the "debug" command here
+                engine.debug = (comm.value[0] == "on") ? true : false;
             }
             else if (comm.key == "register")
             {
@@ -137,6 +148,15 @@ void UCI::UCI_Loop()
             {
                 std::cerr << "Unrecognized command: " << comm.key << "\n";
             }
+        }
+        if (go)
+        {
+            std::string bestmove = engine.getBestMove();
+            std::string ponder = engine.getPonderMove();
+
+            std::cout << "bestmove " << bestmove << " ponder " << ponder << "\n";
+
+            engine.ponder = false; // make all parameters reset
         }
     }
 }

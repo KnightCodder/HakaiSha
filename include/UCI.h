@@ -111,8 +111,13 @@ class UCI
 {
 public:
     ChessEngine engine;
+    bool AnalyseMode = false;
 
     void UCI_Loop();
+    void quit()
+    {
+        
+    }
     
 };
 

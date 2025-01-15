@@ -16,6 +16,7 @@ namespace id
 #include <array>
 #include <stack>
 #include <thread>
+#include <string.h>
 #include <unordered_map>
 #include <random>
 #include <cstdint>
@@ -143,6 +144,7 @@ enum Sqaure
     F8,
     G8,
     H8,
+    EMPTY_SQUARE
 };
 
 struct Move
@@ -150,7 +152,7 @@ struct Move
     int from, to;
     Piece promotion;
 
-    Move(int f, int t, Piece p = {EMPTY, NONE}) : from(f), to(t), promotion(p) {}
+    Move(int f = EMPTY_SQUARE, int t = EMPTY_SQUARE, Piece p = {EMPTY, NONE}) : from(f), to(t), promotion(p) {}
 
     std::string toString() const
     {
@@ -189,6 +191,91 @@ struct Move
         }
 
         return moveStr;
+    }
+};
+
+struct Score
+{
+    double score_cp; // Positive if white is better
+    int score_mate;  // Positive if black is getting mated, negative if white is getting mated
+
+    // Default constructor
+    Score(double cp = 0.0, int mate = 0)
+        : score_cp(cp), score_mate(mate) {}
+
+    bool operator<(const Score &other) const
+    {
+        if (score_mate > 0 && other.score_mate < 0)
+            return false;
+        if (score_mate < 0 && other.score_mate > 0)
+            return true;
+        if (score_mate != 0 && other.score_mate != 0)
+            return score_mate > other.score_mate;
+        if (score_mate != 0 || other.score_mate != 0)
+            return score_mate < other.score_mate;
+
+        // Otherwise, compare centipawn scores
+        return score_cp < other.score_cp;
+    }
+
+    bool operator>(const Score &other) const
+    {
+        return other < *this;
+    }
+
+    bool operator==(const Score &other) const
+    {
+        if (score_mate != 0 && other.score_mate != 0)
+        {
+            if (score_mate == other.score_mate)
+                return true;
+            return false;
+        }
+        return score_cp == other.score_cp;
+    }
+
+    bool operator!=(const Score &other) const
+    {
+        return !(*this == other);
+    }
+
+    bool operator<=(const Score &other) const
+    {
+        return !(other < *this);
+    }
+
+    bool operator>=(const Score &other) const
+    {
+        return !(*this < other);
+    }
+
+    Score operator*(const double &other) const
+    {
+        return Score(score_cp * other, score_mate * other / abs(other));
+    }
+
+    Score operator*(const Score &other) const
+    {
+        return Score(score_cp * other.score_cp, std::max(score_mate, other.score_mate));
+    }
+
+    Score operator+(const double &other) const
+    {
+        return Score(score_cp + other, score_mate);
+    }
+
+    Score operator-(const double &other) const
+    {
+        return Score(score_cp - other, score_mate);
+    }
+    
+    Score operator-() const
+    {
+        return Score(-score_cp, -score_mate);
+    }
+    std::pair<std::string, std::string> toString() const
+    {
+        return {std::to_string(score_cp), score_mate == 0 ? "None" : std::to_string(score_mate)};
     }
 };
 
